@@ -17,4 +17,4 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
-      - run: npx @vscode/vsce publish --oidc --no-dependencies
+      - run: npx --yes @vscode/vsce@4.1.0 publish --oidc --no-dependencies
