@@ -1,0 +1,246 @@
+{
+  "name": "markdown-annotator",
+  "displayName": "Markdown Annotator",
+  "description": "Highlight, comment, color-code, and attach links in the official VS Code Markdown preview. Annotations live in a sidecar file next to your document.",
+  "version": "0.1.0",
+  "publisher": "Aki0x137",
+  "license": "MIT",
+  "icon": "media/icon.png",
+  "galleryBanner": {
+    "color": "#1e1e1e",
+    "theme": "dark"
+  },
+  "categories": ["Other", "Visualization"],
+  "keywords": ["markdown", "preview", "annotation", "highlight", "comment"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Aki0x137/annotate_markdown.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Aki0x137/annotate_markdown/issues"
+  },
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "Highlights render in Restricted Mode. Creating or editing annotations requires a trusted workspace."
+    },
+    "virtualWorkspaces": {
+      "supported": true
+    }
+  },
+  "activationEvents": [
+    "onLanguage:markdown"
+  ],
+  "main": "./dist/extension.js",
+  "browser": "./dist/extension.js",
+  "contributes": {
+    "markdown.markdownItPlugins": true,
+    "markdown.previewStyles": ["./dist/preview.css"],
+    "markdown.previewScripts": ["./dist/preview.js"],
+    "commands": [
+      {
+        "command": "annotateMd.highlightSelection",
+        "title": "Highlight Selection",
+        "category": "Annotate"
+      },
+      {
+        "command": "annotateMd.addComment",
+        "title": "Add Comment",
+        "category": "Annotate"
+      },
+      {
+        "command": "annotateMd.attachLink",
+        "title": "Attach Link",
+        "category": "Annotate"
+      },
+      {
+        "command": "annotateMd.setColor",
+        "title": "Set Color",
+        "category": "Annotate"
+      },
+      {
+        "command": "annotateMd.editComment",
+        "title": "Edit Comment",
+        "category": "Annotate"
+      },
+      {
+        "command": "annotateMd.removeAnnotation",
+        "title": "Remove Annotation",
+        "category": "Annotate"
+      },
+      {
+        "command": "annotateMd.goToAnnotation",
+        "title": "Go to Annotation",
+        "category": "Annotate"
+      },
+      {
+        "command": "annotateMd.showAnnotations",
+        "title": "Show Annotations",
+        "category": "Annotate"
+      },
+      {
+        "command": "annotateMd.applyFromPreview",
+        "title": "Apply Preview Annotation",
+        "category": "Annotate"
+      },
+      {
+        "command": "annotateMd.reanchor",
+        "title": "Re-attach Orphaned Annotation",
+        "category": "Annotate"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "annotateMd.applyFromPreview",
+          "when": "false"
+        }
+      ],
+      "editor/context": [
+        {
+          "when": "resourceLangId == markdown && editorHasSelection",
+          "command": "annotateMd.highlightSelection",
+          "group": "annotate@1"
+        },
+        {
+          "when": "resourceLangId == markdown && editorHasSelection",
+          "command": "annotateMd.addComment",
+          "group": "annotate@2"
+        },
+        {
+          "when": "resourceLangId == markdown && editorHasSelection",
+          "command": "annotateMd.attachLink",
+          "group": "annotate@3"
+        }
+      ],
+      "webview/context": [
+        {
+          "when": "(webviewId == 'markdown.preview' || webviewId == 'vscode.markdown.preview.editor') && webviewSection == 'annotateMdSelection'",
+          "command": "annotateMd.highlightSelection",
+          "group": "1_annotate@1"
+        },
+        {
+          "when": "(webviewId == 'markdown.preview' || webviewId == 'vscode.markdown.preview.editor') && webviewSection == 'annotateMdSelection'",
+          "command": "annotateMd.addComment",
+          "group": "1_annotate@2"
+        },
+        {
+          "when": "(webviewId == 'markdown.preview' || webviewId == 'vscode.markdown.preview.editor') && webviewSection == 'annotateMdSelection'",
+          "command": "annotateMd.attachLink",
+          "group": "1_annotate@3"
+        },
+        {
+          "when": "(webviewId == 'markdown.preview' || webviewId == 'vscode.markdown.preview.editor') && webviewSection == 'annotateMdMark'",
+          "command": "annotateMd.editComment",
+          "group": "1_annotate@1"
+        },
+        {
+          "when": "(webviewId == 'markdown.preview' || webviewId == 'vscode.markdown.preview.editor') && webviewSection == 'annotateMdMark'",
+          "command": "annotateMd.setColor",
+          "group": "1_annotate@2"
+        },
+        {
+          "when": "(webviewId == 'markdown.preview' || webviewId == 'vscode.markdown.preview.editor') && webviewSection == 'annotateMdMark'",
+          "command": "annotateMd.removeAnnotation",
+          "group": "1_annotate@3"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "annotateMd.showAnnotations",
+          "when": "view == annotateMd.annotations",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "annotateMd.goToAnnotation",
+          "when": "view == annotateMd.annotations",
+          "group": "inline"
+        },
+        {
+          "command": "annotateMd.removeAnnotation",
+          "when": "view == annotateMd.annotations",
+          "group": "inline"
+        },
+        {
+          "command": "annotateMd.reanchor",
+          "when": "view == annotateMd.annotations && viewItem == orphaned",
+          "group": "inline"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "annotateMd",
+          "title": "Markdown Annotator",
+          "icon": "media/activitybar.svg"
+        }
+      ]
+    },
+    "views": {
+      "annotateMd": [
+        {
+          "id": "annotateMd.annotations",
+          "name": "Annotations"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "annotateMd.highlightSelection",
+        "key": "ctrl+alt+h",
+        "mac": "cmd+alt+h",
+        "when": "editorTextFocus && editorHasSelection && resourceLangId == markdown"
+      }
+    ],
+    "configuration": {
+      "title": "Markdown Annotator",
+      "properties": {
+        "annotateMd.defaultColor": {
+          "type": "string",
+          "enum": ["yellow", "green", "blue", "pink", "orange"],
+          "default": "yellow",
+          "description": "Default highlight color."
+        },
+        "annotateMd.author": {
+          "type": "string",
+          "default": "",
+          "description": "Author name stored on new annotations."
+        },
+        "annotateMd.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Markdown Annotator in this workspace."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "lint": "eslint src --ext ts",
+    "test": "node --import tsx --test src/**/*.test.ts",
+    "package": "npx @vscode/vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/markdown-it": "^14.1.2",
+    "@types/node": "^20.14.0",
+    "@types/vscode": "^1.90.0",
+    "@typescript-eslint/eslint-plugin": "^7.13.0",
+    "@typescript-eslint/parser": "^7.13.0",
+    "@vscode/vsce": "^3.2.0",
+    "esbuild": "^0.25.0",
+    "eslint": "^8.57.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.0"
+  },
+  "dependencies": {
+    "markdown-it": "^14.1.0"
+  }
+}

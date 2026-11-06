@@ -1,0 +1,54 @@
+mark.ann {
+  border-radius: 2px;
+  padding: 0 0.1em;
+  cursor: pointer;
+}
+mark.ann-yellow { background: rgba(255, 235, 59, 0.45); }
+mark.ann-green { background: rgba(129, 199, 132, 0.45); }
+mark.ann-blue { background: rgba(100, 181, 246, 0.45); }
+mark.ann-pink { background: rgba(244, 143, 177, 0.45); }
+mark.ann-orange { background: rgba(255, 183, 77, 0.45); }
+
+.ann-toolbar,
+.ann-popover {
+  position: absolute;
+  z-index: 1000;
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 6px;
+  border-radius: 6px;
+  background: var(--vscode-editorWidget-background, #252526);
+  color: var(--vscode-editorWidget-foreground, #ccc);
+  border: 1px solid var(--vscode-editorWidget-border, #454545);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  font-family: var(--vscode-font-family, sans-serif);
+  font-size: 12px;
+  max-width: 320px;
+}
+
+.ann-toolbar button,
+.ann-popover button {
+  background: var(--vscode-button-background, #0e639c);
+  color: var(--vscode-button-foreground, #fff);
+  border: none;
+  border-radius: 3px;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+
+.ann-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid #666;
+  cursor: pointer;
+  padding: 0;
+}
+
+.ann-swatch.yellow { background: #ffeb3b; }
+.ann-swatch.green { background: #81c784; }
+.ann-swatch.blue { background: #64b5f6; }
+.ann-swatch.pink { background: #f48fb1; }
+.ann-swatch.orange { background: #ffb74d; }
