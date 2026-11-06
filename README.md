@@ -1,4 +1,4 @@
-# Markdown Annotator
+# Annotate Markdown Preview
 
 Highlight, comment, color-code, and attach links in the **official VS Code Markdown preview**. The Markdown source is never modified. Annotations are stored next to the document in a sidecar file:
 
