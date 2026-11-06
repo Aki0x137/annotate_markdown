@@ -10,8 +10,17 @@
     "color": "#1e1e1e",
     "theme": "dark"
   },
-  "categories": ["Other", "Visualization"],
-  "keywords": ["markdown", "preview", "annotation", "highlight", "comment"],
+  "categories": [
+    "Other",
+    "Visualization"
+  ],
+  "keywords": [
+    "markdown",
+    "preview",
+    "annotation",
+    "highlight",
+    "comment"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/Aki0x137/annotate_markdown.git"
@@ -38,8 +47,12 @@
   "browser": "./dist/extension.js",
   "contributes": {
     "markdown.markdownItPlugins": true,
-    "markdown.previewStyles": ["./dist/preview.css"],
-    "markdown.previewScripts": ["./dist/preview.js"],
+    "markdown.previewStyles": [
+      "./dist/preview.css"
+    ],
+    "markdown.previewScripts": [
+      "./dist/preview.js"
+    ],
     "commands": [
       {
         "command": "annotateMd.highlightSelection",
@@ -203,7 +216,13 @@
       "properties": {
         "annotateMd.defaultColor": {
           "type": "string",
-          "enum": ["yellow", "green", "blue", "pink", "orange"],
+          "enum": [
+            "yellow",
+            "green",
+            "blue",
+            "pink",
+            "orange"
+          ],
           "default": "yellow",
           "description": "Default highlight color."
         },
@@ -234,7 +253,7 @@
     "@types/vscode": "^1.90.0",
     "@typescript-eslint/eslint-plugin": "^7.13.0",
     "@typescript-eslint/parser": "^7.13.0",
-    "@vscode/vsce": "^3.2.0",
+    "@vscode/vsce": "^4.1.0",
     "esbuild": "^0.25.0",
     "eslint": "^8.57.0",
     "tsx": "^4.19.0",
