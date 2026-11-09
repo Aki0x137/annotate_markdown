@@ -27,15 +27,20 @@
     return "";
   }
 
-  function invoke(payload) {
+  // Real <a href="vscode://..."> clicks are trusted; the webview then intercepts them.
+  // Programmatic a.click() is NOT trusted, so the iframe navigates to vscode:// and the preview dies.
+  function actionHref(payload) {
     const query = new URLSearchParams({ data: JSON.stringify(payload) }).toString();
-    const href = `vscode://${EXTENSION_ID}/apply?${query}`;
+    return `vscode://${EXTENSION_ID}/apply?${query}`;
+  }
+
+  function actionLink(label, payload, className) {
     const a = document.createElement("a");
-    a.href = href;
-    a.style.display = "none";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+    a.className = className || "ann-action";
+    a.textContent = label;
+    a.href = actionHref(payload);
+    a.title = label;
+    return a;
   }
 
   function selectionContext() {
@@ -55,18 +60,22 @@
     const idx = full.indexOf(text);
     const prefix = idx > 0 ? full.slice(Math.max(0, idx - 24), idx) : "";
     const suffix = idx >= 0 ? full.slice(idx + text.length, idx + text.length + 24) : "";
-    return { exact: text, prefix, suffix, lineHint, resource: resourceUri() };
+    return { exact: text.slice(0, 500), prefix, suffix, lineHint, resource: resourceUri() };
   }
 
   function syncBodyContext() {
-    const ctx = selectionContext();
-    if (ctx) {
-      document.body.setAttribute(
-        "data-vscode-context",
-        JSON.stringify({ webviewSection: "annotateMdSelection", ...ctx })
-      );
-    } else {
-      document.body.removeAttribute("data-vscode-context");
+    try {
+      const ctx = selectionContext();
+      if (ctx) {
+        document.body.setAttribute(
+          "data-vscode-context",
+          JSON.stringify({ webviewSection: "annotateMdSelection", ...ctx })
+        );
+      } else {
+        document.body.removeAttribute("data-vscode-context");
+      }
+    } catch {
+      // ignore
     }
   }
 
@@ -85,42 +94,22 @@
     if (!toolbar) {
       toolbar = document.createElement("div");
       toolbar.className = "ann-toolbar";
+      toolbar.addEventListener("mousedown", (e) => e.preventDefault());
       document.body.appendChild(toolbar);
     }
-    toolbar.innerHTML = "";
-    const highlight = document.createElement("button");
-    highlight.textContent = "Highlight";
-    highlight.addEventListener("click", () => {
-      invoke({ action: "add", type: "highlight", ...ctx, color: "yellow" });
-      hideToolbar();
-    });
-    toolbar.appendChild(highlight);
+    toolbar.replaceChildren();
+    toolbar.appendChild(actionLink("Highlight", { action: "add", type: "highlight", color: "yellow", ...ctx }));
     for (const c of COLORS) {
-      const sw = document.createElement("button");
-      sw.className = `ann-swatch ${c}`;
-      sw.title = c;
-      sw.addEventListener("click", () => {
-        invoke({ action: "add", type: "highlight", color: c, ...ctx });
-        hideToolbar();
-      });
-      toolbar.appendChild(sw);
+      toolbar.appendChild(actionLink("", { action: "add", type: "highlight", color: c, ...ctx }, `ann-swatch ${c}`));
     }
-    const comment = document.createElement("button");
-    comment.textContent = "Comment";
-    comment.addEventListener("click", () => {
-      invoke({ action: "add", type: "comment", ...ctx });
+    toolbar.appendChild(actionLink("Comment", { action: "add", type: "comment", ...ctx }));
+    toolbar.appendChild(actionLink("Link", { action: "add", type: "link", ...ctx }));
+    const sel = window.getSelection();
+    if (!sel || !sel.rangeCount) {
       hideToolbar();
-    });
-    toolbar.appendChild(comment);
-    const link = document.createElement("button");
-    link.textContent = "Link";
-    link.addEventListener("click", () => {
-      invoke({ action: "add", type: "link", ...ctx });
-      hideToolbar();
-    });
-    toolbar.appendChild(link);
-    const range = window.getSelection().getRangeAt(0);
-    place(toolbar, range.getBoundingClientRect());
+      return;
+    }
+    place(toolbar, sel.getRangeAt(0).getBoundingClientRect());
     toolbar.style.display = "flex";
   }
 
@@ -134,13 +123,14 @@
     if (!popover) {
       popover = document.createElement("div");
       popover.className = "ann-popover";
+      popover.addEventListener("mousedown", (e) => e.preventDefault());
       document.body.appendChild(popover);
     }
     const id = mark.getAttribute("data-ann-id");
     const comment = mark.getAttribute("data-ann-comment") || "";
     const url = mark.getAttribute("data-ann-url") || "";
     const resource = resourceUri();
-    popover.innerHTML = "";
+    popover.replaceChildren();
     if (comment) {
       const p = document.createElement("div");
       p.textContent = comment;
@@ -151,25 +141,13 @@
       a.href = url;
       a.textContent = url;
       a.target = "_blank";
+      a.rel = "noopener";
       popover.appendChild(a);
     }
     for (const c of COLORS) {
-      const sw = document.createElement("button");
-      sw.className = `ann-swatch ${c}`;
-      sw.title = c;
-      sw.addEventListener("click", () => {
-        invoke({ action: "update", id, color: c, resource });
-        hidePopover();
-      });
-      popover.appendChild(sw);
+      popover.appendChild(actionLink("", { action: "update", id, color: c, resource }, `ann-swatch ${c}`));
     }
-    const del = document.createElement("button");
-    del.textContent = "Delete";
-    del.addEventListener("click", () => {
-      invoke({ action: "remove", id, resource });
-      hidePopover();
-    });
-    popover.appendChild(del);
+    popover.appendChild(actionLink("Delete", { action: "remove", id, resource }));
     place(popover, mark.getBoundingClientRect());
     popover.style.display = "flex";
   }
@@ -181,7 +159,13 @@
   }
 
   document.addEventListener("selectionchange", syncBodyContext);
-  document.addEventListener("mouseup", () => {
+  document.addEventListener("mouseup", (e) => {
+    if (toolbar && toolbar.contains(e.target)) {
+      return;
+    }
+    if (popover && popover.contains(e.target)) {
+      return;
+    }
     setTimeout(showToolbar, 0);
   });
   document.addEventListener("keyup", (e) => {
@@ -191,16 +175,17 @@
     }
   });
   document.addEventListener("click", (e) => {
-    const mark = e.target && e.target.closest ? e.target.closest("mark.ann") : null;
+    const target = e.target;
+    if (!target || !target.closest) {
+      return;
+    }
+    if (target.closest(".ann-toolbar, .ann-popover")) {
+      return;
+    }
+    const mark = target.closest("mark.ann");
     if (mark) {
       e.preventDefault();
       showPopover(mark);
-      return;
-    }
-    if (toolbar && toolbar.contains(e.target)) {
-      return;
-    }
-    if (popover && popover.contains(e.target)) {
       return;
     }
     hidePopover();

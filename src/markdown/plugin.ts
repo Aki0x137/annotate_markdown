@@ -1,35 +1,59 @@
 import type MarkdownIt from "markdown-it";
-import type StateCore from "markdown-it/lib/rules_core/state_core.mjs";
 import type Token from "markdown-it/lib/token.mjs";
 import type { Annotation } from "../store/types";
 import { resolveAnchor } from "../anchoring/anchor";
 
 export type AnnotationLookup = (uri?: string) => Annotation[];
 
+type TokenCtor = new (type: string, tag: string, nesting: number) => Token;
+
 export function annotatePlugin(md: MarkdownIt, lookup: AnnotationLookup): MarkdownIt {
+  const marked = md as MarkdownIt & { __annotateMd?: boolean };
+  if (marked.__annotateMd) {
+    return md;
+  }
+  marked.__annotateMd = true;
+
   const defaultRender = md.renderer.render.bind(md.renderer);
   md.renderer.render = (tokens, options, env) => {
-    const uri = documentUri(env);
-    const annotations = lookup(uri).filter((a) => a.status !== "orphaned");
-    if (!annotations.length) {
+    try {
+      const uri = documentUri(env);
+      const annotations = (lookup(uri) ?? []).filter((a) => a.status !== "orphaned" && a.anchor?.exact);
+      if (!annotations.length) {
+        return defaultRender(tokens, options, env);
+      }
+      const source = collectSource(tokens);
+      const ranges = annotations
+        .map((a) => {
+          const hit = resolveAnchor(source, a.anchor);
+          return hit ? { a, hit } : undefined;
+        })
+        .filter((x): x is { a: Annotation; hit: { start: number; end: number } } => !!x);
+      if (!ranges.length) {
+        return defaultRender(tokens, options, env);
+      }
+      return defaultRender(cloneTokens(tokens, ranges, uri), options, env);
+    } catch {
       return defaultRender(tokens, options, env);
     }
-    const source = tokens.map((t) => t.content || "").join("\n");
-    const ranges = annotations
-      .map((a) => {
-        const hit = resolveAnchor(source, a.anchor);
-        return hit ? { a, hit } : { a, hit: { start: 0, end: a.anchor.exact.length, score: 1 } };
-      })
-      .filter((x) => !!x.a.anchor.exact);
-
-    const cloned = cloneTokens(tokens, ranges, uri);
-    return defaultRender(cloned, options, env);
   };
-
-  md.core.ruler.push("annotate_md", (state: StateCore) => {
-    void state;
-  });
   return md;
+}
+
+function collectSource(tokens: Token[]): string {
+  const parts: string[] = [];
+  const walk = (list: Token[]) => {
+    for (const token of list) {
+      if (token.type === "text" && token.content) {
+        parts.push(token.content);
+      }
+      if (token.children?.length) {
+        walk(token.children);
+      }
+    }
+  };
+  walk(tokens);
+  return parts.join("");
 }
 
 function documentUri(
@@ -54,10 +78,13 @@ function cloneTokens(
   uri: string | undefined
 ): Token[] {
   return tokens.map((token) => {
+    if (token.type === "code_inline" || token.type === "code_block" || token.type === "fence") {
+      return token;
+    }
     if (!token.children?.length) {
       return token;
     }
-    const copy = Object.assign(Object.create(Object.getPrototypeOf(token)), token) as Token;
+    const copy = shallowToken(token);
     copy.children = wrapInline(token.children, ranges, uri);
     return copy;
   });
@@ -70,8 +97,12 @@ function wrapInline(
 ): Token[] {
   const next: Token[] = [];
   for (const child of children) {
+    if (child.type === "code_inline") {
+      next.push(child);
+      continue;
+    }
     if (child.children?.length) {
-      const copy = Object.assign(Object.create(Object.getPrototypeOf(child)), child) as Token;
+      const copy = shallowToken(child);
       copy.children = wrapInline(child.children, ranges, uri);
       next.push(copy);
       continue;
@@ -94,7 +125,11 @@ function splitText(
   const out: Token[] = [];
   let matched = false;
   for (const r of ranges) {
-    const idx = remaining.indexOf(r.a.anchor.exact);
+    const exact = r.a.anchor.exact;
+    if (!exact) {
+      continue;
+    }
+    const idx = remaining.indexOf(exact);
     if (idx < 0) {
       continue;
     }
@@ -107,18 +142,17 @@ function splitText(
       id: r.a.id,
       resource: uri ?? "",
       color: r.a.color,
-      comment: r.a.comment ?? "",
-      url: r.a.url ?? "",
     });
-    const open = makeToken(
-      token,
-      "html_inline",
-      `<mark class="ann ann-${escapeAttr(r.a.color)}" data-ann-id="${escapeAttr(r.a.id)}" data-ann-type="${escapeAttr(r.a.type)}" data-ann-comment="${escapeAttr(r.a.comment ?? "")}" data-ann-url="${escapeAttr(r.a.url ?? "")}" data-ann-color="${escapeAttr(r.a.color)}" data-vscode-context="${escapeAttr(ctx)}">`
+    out.push(
+      makeToken(
+        token,
+        "html_inline",
+        `<mark class="ann ann-${escapeAttr(r.a.color)}" data-ann-id="${escapeAttr(r.a.id)}" data-ann-type="${escapeAttr(r.a.type)}" data-ann-comment="${escapeAttr(r.a.comment ?? "")}" data-ann-url="${escapeAttr(r.a.url ?? "")}" data-ann-color="${escapeAttr(r.a.color)}" data-vscode-context="${escapeAttr(ctx)}">`
+      )
     );
-    out.push(open);
-    out.push(makeToken(token, "text", r.a.anchor.exact));
+    out.push(makeToken(token, "text", exact));
     out.push(makeToken(token, "html_inline", "</mark>"));
-    remaining = remaining.slice(idx + r.a.anchor.exact.length);
+    remaining = remaining.slice(idx + exact.length);
   }
   if (!matched) {
     return [token];
@@ -129,21 +163,26 @@ function splitText(
   return out;
 }
 
+function shallowToken(token: Token): Token {
+  const copy = makeToken(token, token.type, token.content);
+  copy.tag = token.tag;
+  copy.attrs = token.attrs ? token.attrs.map((a) => [...a]) : null;
+  copy.map = token.map;
+  copy.nesting = token.nesting;
+  copy.level = token.level;
+  copy.markup = token.markup;
+  copy.info = token.info;
+  copy.meta = token.meta;
+  copy.block = token.block;
+  copy.hidden = token.hidden;
+  return copy;
+}
+
 function makeToken(proto: Token, type: string, content: string): Token {
-  const t = Object.assign(Object.create(Object.getPrototypeOf(proto)), proto) as Token;
-  t.type = type;
-  t.tag = "";
-  t.attrs = null;
-  t.map = null;
-  t.nesting = 0;
-  t.level = proto.level;
-  t.children = null;
+  const Ctor = proto.constructor as TokenCtor;
+  const t = new Ctor(type, "", 0);
   t.content = content;
-  t.markup = "";
-  t.info = "";
-  t.meta = null;
-  t.block = false;
-  t.hidden = false;
+  t.level = proto.level;
   return t;
 }
 

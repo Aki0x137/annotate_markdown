@@ -28,14 +28,15 @@ mark.ann-orange { background: rgba(255, 183, 77, 0.45); }
   max-width: 320px;
 }
 
-.ann-toolbar button,
-.ann-popover button {
+.ann-toolbar a.ann-action,
+.ann-popover a.ann-action {
   background: var(--vscode-button-background, #0e639c);
   color: var(--vscode-button-foreground, #fff);
   border: none;
   border-radius: 3px;
   padding: 3px 8px;
   cursor: pointer;
+  text-decoration: none;
 }
 
 .ann-swatch {
@@ -45,6 +46,8 @@ mark.ann-orange { background: rgba(255, 183, 77, 0.45); }
   border: 1px solid #666;
   cursor: pointer;
   padding: 0;
+  display: inline-block;
+  text-decoration: none;
 }
 
 .ann-swatch.yellow { background: #ffeb3b; }
