@@ -2,5 +2,6 @@ node_modules/
 dist/
 out/
 *.vsix
+*.annotations.json
 .vscode-test/
 .DS_Store

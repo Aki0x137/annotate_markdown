@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.4
+
+- Show comments in the Markdown preview beside highlights, with basic formatting (`code`, **bold**, *italic*).
+- Popover layout: comment on its own row; color / edit / delete actions below.
+- Preview **Edit** for comments from the highlight popover.
+
 ## 0.1.3
 
 - Fix Markdown preview going blank: toolbar actions use real `vscode://` links instead of a programmatic click that navigated the webview away.

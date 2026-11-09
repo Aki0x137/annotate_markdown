@@ -25,8 +25,28 @@ describe("markdown-it plugin", () => {
     assert.match(html, /data-ann-id="1"/);
     assert.match(html, /data-vscode-context=/);
     assert.match(html, /world<\/mark>/);
-    // And verify cached tokens were not mutated
     const htmlOther = md.renderer.render(tokens, md.options, { currentDocument: "file:///tmp/b.md" });
     assert.doesNotMatch(htmlOther, /<mark/);
+  });
+
+  it("renders comment markdown next to the highlight", () => {
+    const anns: Annotation[] = [
+      {
+        id: "1",
+        type: "comment",
+        color: "yellow",
+        comment: "see `code` and **bold**",
+        createdAt: "",
+        updatedAt: "",
+        status: "active",
+        anchor: { exact: "world", prefix: "Hello ", suffix: "" },
+      },
+    ];
+    const md = annotatePlugin(new MarkdownIt(), () => anns);
+    const tokens = md.parse("Hello world", {});
+    const html = md.renderer.render(tokens, md.options, { currentDocument: "file:///tmp/a.md" });
+    assert.match(html, /ann-inline-note/);
+    assert.match(html, /<code>code<\/code>/);
+    assert.match(html, /<strong>bold<\/strong>/);
   });
 });

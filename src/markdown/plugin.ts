@@ -2,6 +2,7 @@ import type MarkdownIt from "markdown-it";
 import type Token from "markdown-it/lib/token.mjs";
 import type { Annotation } from "../store/types";
 import { resolveAnchor } from "../anchoring/anchor";
+import { escapeHtml, renderBasicMarkdown } from "./inline";
 
 export type AnnotationLookup = (uri?: string) => Annotation[];
 
@@ -152,6 +153,15 @@ function splitText(
     );
     out.push(makeToken(token, "text", exact));
     out.push(makeToken(token, "html_inline", "</mark>"));
+    if (r.a.comment) {
+      out.push(
+        makeToken(
+          token,
+          "html_inline",
+          `<span class="ann-comment-src" hidden data-ann-id="${escapeAttr(r.a.id)}">${escapeHtml(r.a.comment)}</span><span class="ann-inline-note" data-ann-id="${escapeAttr(r.a.id)}">${renderBasicMarkdown(r.a.comment)}</span>`
+        )
+      );
+    }
     remaining = remaining.slice(idx + exact.length);
   }
   if (!matched) {

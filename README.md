@@ -7,7 +7,8 @@ Highlight, comment, color-code, and attach links in the **official VS Code Markd
 ## Features
 
 - Select text in the Markdown preview to show a toolbar: **Highlight**, color swatches, **Comment**, **Link**.
-- Click an existing highlight in the preview to view, edit, or delete it.
+- Comments appear next to the highlight and support `code`, **bold**, and *italic*.
+- Click an existing highlight to view the comment on its own row, with color / edit / delete below it.
 - The same actions are available from the **Command Palette** (`Annotate: …`) and the Markdown editor context menu.
 - Highlights also appear as decorations in the source editor.
 - An **Annotations** view lists every annotation, including orphans after heavy edits.

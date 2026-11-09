@@ -119,6 +119,41 @@
     }
   }
 
+  function commentSource(mark) {
+    const id = mark.getAttribute("data-ann-id");
+    const attr = mark.getAttribute("data-ann-comment");
+    if (attr) {
+      return attr;
+    }
+    const src = mark.nextElementSibling;
+    if (src && src.classList && src.classList.contains("ann-comment-src")) {
+      return src.textContent || "";
+    }
+    if (id) {
+      const byId = document.querySelector(`.ann-comment-src[data-ann-id="${CSS.escape(id)}"]`);
+      if (byId) {
+        return byId.textContent || "";
+      }
+    }
+    return "";
+  }
+
+  function findMark(el) {
+    if (!el || !el.closest) {
+      return null;
+    }
+    const mark = el.closest("mark.ann");
+    if (mark) {
+      return mark;
+    }
+    const note = el.closest(".ann-inline-note, .ann-comment-src");
+    if (!note) {
+      return null;
+    }
+    const id = note.getAttribute("data-ann-id");
+    return id ? document.querySelector(`mark.ann[data-ann-id="${CSS.escape(id)}"]`) : note.previousElementSibling;
+  }
+
   function showPopover(mark) {
     if (!popover) {
       popover = document.createElement("div");
@@ -127,28 +162,44 @@
       document.body.appendChild(popover);
     }
     const id = mark.getAttribute("data-ann-id");
-    const comment = mark.getAttribute("data-ann-comment") || "";
+    const comment = commentSource(mark);
     const url = mark.getAttribute("data-ann-url") || "";
     const resource = resourceUri();
     popover.replaceChildren();
-    if (comment) {
-      const p = document.createElement("div");
-      p.textContent = comment;
-      popover.appendChild(p);
+
+    const body = document.createElement("div");
+    body.className = "ann-popover-comment";
+    const note = document.querySelector(`.ann-inline-note[data-ann-id="${CSS.escape(id)}"]`);
+    if (note) {
+      body.append(...[...note.childNodes].map((n) => n.cloneNode(true)));
+    } else if (comment) {
+      body.textContent = comment;
+    } else {
+      body.textContent = "No comment yet.";
+      body.classList.add("ann-popover-comment-empty");
     }
+    popover.appendChild(body);
+
     if (url) {
       const a = document.createElement("a");
+      a.className = "ann-popover-url";
       a.href = url;
       a.textContent = url;
       a.target = "_blank";
       a.rel = "noopener";
       popover.appendChild(a);
     }
+
+    const actions = document.createElement("div");
+    actions.className = "ann-popover-actions";
     for (const c of COLORS) {
-      popover.appendChild(actionLink("", { action: "update", id, color: c, resource }, `ann-swatch ${c}`));
+      actions.appendChild(actionLink("", { action: "update", id, color: c, resource }, `ann-swatch ${c}`));
     }
-    popover.appendChild(actionLink("Delete", { action: "remove", id, resource }));
-    place(popover, mark.getBoundingClientRect());
+    actions.appendChild(actionLink("Edit", { action: "editComment", id, resource }));
+    actions.appendChild(actionLink("Delete", { action: "remove", id, resource }));
+    popover.appendChild(actions);
+
+    place(popover, (note || mark).getBoundingClientRect());
     popover.style.display = "flex";
   }
 
@@ -182,7 +233,7 @@
     if (target.closest(".ann-toolbar, .ann-popover")) {
       return;
     }
-    const mark = target.closest("mark.ann");
+    const mark = findMark(target);
     if (mark) {
       e.preventDefault();
       showPopover(mark);

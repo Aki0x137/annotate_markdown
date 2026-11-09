@@ -6,8 +6,10 @@ import { uuid } from "../id";
 import { AnnotationsTreeProvider } from "../editor/treeView";
 import { AnnotationDecorations } from "../editor/decorations";
 
+const COMMENT_PROMPT = "Comment (**bold**, *italic*, `code`)";
+
 export interface PreviewPayload {
-  action?: "add" | "update" | "remove";
+  action?: "add" | "update" | "remove" | "editComment";
   id?: string;
   type?: Annotation["type"];
   color?: ColorName;
@@ -54,17 +56,29 @@ export function registerCommands(
       await refresh(uri);
       return;
     }
-    if (payload.action === "update" && payload.id) {
+    if ((payload.action === "update" || payload.action === "editComment") && payload.id) {
       const anns = await store.list(uri);
       const target = anns.find((a) => a.id === payload.id);
       if (!target) {
         return;
+      }
+      if (payload.action === "editComment" && payload.comment === undefined) {
+        const comment = await vscode.window.showInputBox({
+          prompt: COMMENT_PROMPT,
+          value: target.comment ?? "",
+          ignoreFocusOut: true,
+        });
+        if (comment === undefined) {
+          return;
+        }
+        payload.comment = comment;
       }
       if (payload.color) {
         target.color = payload.color;
       }
       if (payload.comment !== undefined) {
         target.comment = payload.comment;
+        target.type = payload.comment ? "comment" : target.type;
       }
       if (payload.url !== undefined) {
         target.url = payload.url;
@@ -79,7 +93,11 @@ export function registerCommands(
     }
     let comment = payload.comment;
     if (payload.type === "comment" && comment === undefined) {
-      comment = await vscode.window.showInputBox({ prompt: "Comment" });
+      comment = await vscode.window.showInputBox({
+        prompt: COMMENT_PROMPT,
+        placeHolder: "Note about this text",
+        ignoreFocusOut: true,
+      });
       if (comment === undefined) {
         return;
       }
@@ -152,7 +170,7 @@ export function registerCommands(
         await applyPayload({ ...ctx, action: "add", type: "comment" });
         return;
       }
-      const comment = await vscode.window.showInputBox({ prompt: "Comment" });
+      const comment = await vscode.window.showInputBox({ prompt: COMMENT_PROMPT, ignoreFocusOut: true });
       if (comment === undefined) {
         return;
       }
@@ -208,7 +226,11 @@ export function registerCommands(
       if (!target) {
         return;
       }
-      const comment = await vscode.window.showInputBox({ prompt: "Comment", value: target.comment ?? "" });
+      const comment = await vscode.window.showInputBox({
+        prompt: COMMENT_PROMPT,
+        value: target.comment ?? "",
+        ignoreFocusOut: true,
+      });
       if (comment === undefined) {
         return;
       }

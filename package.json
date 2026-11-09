@@ -2,7 +2,7 @@
   "name": "markdown-annotator",
   "displayName": "Annotate Markdown Preview",
   "description": "Highlight, comment, color-code, and attach links in the official VS Code Markdown preview. Annotations live in a sidecar file next to your document.",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "publisher": "Aki0x137",
   "license": "MIT",
   "icon": "media/icon.png",
